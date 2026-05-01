@@ -1,0 +1,40 @@
+name: Build and Run
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Initialize
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install build tools
+        run:  sudo apt install -y cmake g++ make
+
+      - name: Build NativeLib
+        run: |
+          cmake -S NativeLib -B NativeLib/build
+          cmake --build NativeLib/build
+
+      - name: Build ConsoleApp
+        run:  dotnet build ConsoleApp
+
+      - name: Copy native library
+        run:  cp NativeLib/build/libNativeLib.so ConsoleApp/bin/Debug/net10.0/
+
+      - name: Run ConsoleApp
+        run: |
+          cd ConsoleApp/bin/Debug/net10.0
+          LD_LIBRARY_PATH=. dotnet ConsoleApp.dll

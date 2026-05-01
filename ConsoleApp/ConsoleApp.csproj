@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+      <TargetFramework>net10.0</TargetFramework>
+      <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <Nullable>enable</Nullable>
+      <OutputType>Exe</OutputType>
+      <!-- REQUIRED for LibraryImport -->
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+</Project>
