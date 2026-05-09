@@ -1,0 +1,3 @@
+[submodule "submodules/monero-cpp"]
+	path = submodules/monero-cpp
+	url = https://github.com/woodser/monero-cpp

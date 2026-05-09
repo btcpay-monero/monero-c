@@ -1,4 +1,4 @@
-name: Build and Run
+name: Build and Test
 
 on:
   push:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Initialize
         uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -21,12 +23,43 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install build tools
-        run:  sudo apt install -y cmake g++ make
+        run:  |
+          sudo apt install -y cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
+            libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev
 
+      - name: Build Monero project
+        run: |
+          cmake -S submodules/monero-cpp/external/monero-project \
+            -B submodules/monero-cpp/external/monero-project/build/release \
+            -DSTATIC=ON \
+            -DBUILD_64=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build submodules/monero-cpp/external/monero-project/build/release \
+            --target wallet cryptonote_protocol \
+            -j$(nproc)
+            
+      - name: Build Monero C++
+        run: |
+          cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
+          cmake --build submodules/monero-cpp/build -j$(nproc)
+
+      - name: Upload monero-cpp library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-cpp.so
+          path: submodules/monero-cpp/build/libmonero-cpp.so
+            
       - name: Build NativeLib
         run: |
           cmake -S NativeLib -B NativeLib/build
           cmake --build NativeLib/build
+
+      - name: Upload NativeLib
+        uses: actions/upload-artifact@v7
+        with:
+          name: libNativeLib.so
+          path: NativeLib/build/libNativeLib.so
 
       - name: Build ConsoleApp
         run:  dotnet build ConsoleApp
