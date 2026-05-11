@@ -16,7 +16,7 @@ set_target_properties(monero-cpp PROPERTIES
 )
 
 # import our library
-add_library(NativeLib SHARED src/Source.cpp)
+add_library(NativeLib SHARED src/monero_abi_bridge.cpp)
 
 # headers
 target_include_directories(NativeLib PRIVATE
