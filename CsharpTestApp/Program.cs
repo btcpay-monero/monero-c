@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace ConsoleApp;
+namespace CsharpTestApp;
 
 internal partial class Program
 {
@@ -20,7 +20,7 @@ internal partial class Program
         Console.ReadLine();
     }
 
-    [LibraryImport("NativeLib")]
+    [LibraryImport("monero-c")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool monero_utils_is_valid_language([MarshalAs(UnmanagedType.LPUTF8Str)] string language);
 }

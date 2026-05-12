@@ -50,24 +50,24 @@ jobs:
           name: libmonero-cpp.so
           path: submodules/monero-cpp/build/libmonero-cpp.so
             
-      - name: Build NativeLib
+      - name: Build monero-c
         run: |
-          cmake -S NativeLib -B NativeLib/build
-          cmake --build NativeLib/build
+          cmake -S MoneroC -B MoneroC/build
+          cmake --build MoneroC/build
 
-      - name: Upload NativeLib
+      - name: Upload monero-c
         uses: actions/upload-artifact@v7
         with:
-          name: libNativeLib.so
-          path: NativeLib/build/libNativeLib.so
+          name: libmonero-c.so
+          path: MoneroC/build/libmonero-c.so
 
-      - name: Build ConsoleApp
-        run:  dotnet build ConsoleApp
+      - name: Build CsharpTestApp
+        run:  dotnet build CsharpTestApp
 
       - name: Copy native library
-        run:  cp NativeLib/build/libNativeLib.so ConsoleApp/bin/Debug/net10.0/
+        run:  cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Debug/net10.0/
 
-      - name: Run ConsoleApp
+      - name: Run CsharpTestApp
         run: |
-          cd ConsoleApp/bin/Debug/net10.0
-          LD_LIBRARY_PATH=. dotnet ConsoleApp.dll
+          cd CsharpTestApp/bin/Debug/net10.0
+          LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll

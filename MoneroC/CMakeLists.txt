@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(NativeLib LANGUAGES CXX)
+project(monero-c LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -16,10 +16,10 @@ set_target_properties(monero-cpp PROPERTIES
 )
 
 # import our library
-add_library(NativeLib SHARED src/monero_abi_bridge.cpp)
+add_library(monero-c SHARED src/monero_abi_bridge.cpp)
 
 # headers
-target_include_directories(NativeLib PRIVATE
+target_include_directories(monero-c PRIVATE
         ${MONERO_CPP_DIR}/src
         ${MONERO_CPP_DIR}/external/monero-project/src
         ${MONERO_CPP_DIR}/external/monero-project/contrib/epee/include
@@ -29,6 +29,6 @@ target_include_directories(NativeLib PRIVATE
 )
 
 # link monero-cpp
-target_link_libraries(NativeLib PRIVATE
+target_link_libraries(monero-c PRIVATE
         monero-cpp
 )
