@@ -1,15 +1,13 @@
-name: Build and Test
+name: Build macOS ARM64
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build-macos-arm64:
+    runs-on: macos-14
 
     steps:
       - name: Initialize
@@ -24,8 +22,7 @@ jobs:
 
       - name: Install build tools
         run:  |
-          sudo apt install -y cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
-            libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev
+          brew install cmake boost zeromq hidapi protobuf libevent
 
       - name: Build Monero project
         run: |
@@ -37,18 +34,18 @@ jobs:
 
           cmake --build submodules/monero-cpp/external/monero-project/build/release \
             --target wallet cryptonote_protocol \
-            -j$(nproc)
+            -j$(sysctl -n hw.ncpu)
             
       - name: Build Monero C++
         run: |
           cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
-          cmake --build submodules/monero-cpp/build -j$(nproc)
+          cmake --build submodules/monero-cpp/build -j$(sysctl -n hw.ncpu)
 
       - name: Upload monero-cpp library
         uses: actions/upload-artifact@v7
         with:
-          name: libmonero-cpp.so
-          path: submodules/monero-cpp/build/libmonero-cpp.so
+          name: libmonero-cpp-macos-arm64.dylib
+          path: submodules/monero-cpp/build/libmonero-cpp.dylib
             
       - name: Build monero-c
         run: |
@@ -58,16 +55,16 @@ jobs:
       - name: Upload monero-c
         uses: actions/upload-artifact@v7
         with:
-          name: libmonero-c.so
-          path: MoneroC/build/libmonero-c.so
+          name: libmonero-c-macos-arm64.dylib
+          path: MoneroC/build/libmonero-c.dylib
 
       - name: Build CsharpTestApp
         run:  dotnet build CsharpTestApp
 
       - name: Copy native library
-        run:  cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Debug/net10.0/
+        run:  cp MoneroC/build/libmonero-c.dylib CsharpTestApp/bin/Debug/net10.0/
 
       - name: Run CsharpTestApp
         run: |
           cd CsharpTestApp/bin/Debug/net10.0
-          LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll
+          DYLD_LIBRARY_PATH=. dotnet CsharpTestApp.dll

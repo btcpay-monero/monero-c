@@ -1,0 +1,71 @@
+name: Build Windows x64
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Initialize
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install build tools
+        run:  |
+          sudo apt install -y cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
+            libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev
+
+      - name: Build Monero project
+        run: |
+          cmake -S submodules/monero-cpp/external/monero-project \
+            -B submodules/monero-cpp/external/monero-project/build/release \
+            -DSTATIC=ON \
+            -DBUILD_64=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build submodules/monero-cpp/external/monero-project/build/release \
+            --target wallet cryptonote_protocol \
+            -j$(nproc)
+            
+      - name: Build Monero C++
+        run: |
+          cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
+          cmake --build submodules/monero-cpp/build -j$(nproc)
+
+      - name: Upload monero-cpp library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-cpp-win-x64.dll
+          path: submodules/monero-cpp/build/libmonero-cpp.dll
+            
+      - name: Build monero-c
+        run: |
+          cmake -S MoneroC -B MoneroC/build
+          cmake --build MoneroC/build
+
+      - name: Upload monero-c
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-c-win-x64.dll
+          path: MoneroC/build/libmonero-c.dll
+
+      - name: Build CsharpTestApp
+        run:  dotnet build CsharpTestApp
+
+      - name: Copy native library
+        run:  cp MoneroC/build/libmonero-c.dll CsharpTestApp/bin/Debug/net10.0/
+
+      - name: Run CsharpTestApp
+        run: |
+          cd CsharpTestApp/bin/Debug/net10.0
+          LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll

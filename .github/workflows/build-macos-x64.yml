@@ -1,0 +1,69 @@
+name: Build macOS x64
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-macos-x64:
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Initialize
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install build tools
+        run:  |
+          brew install cmake boost zeromq hidapi protobuf libevent
+
+      - name: Build Monero project
+        run: |
+          cmake -S submodules/monero-cpp/external/monero-project \
+            -B submodules/monero-cpp/external/monero-project/build/release \
+            -DSTATIC=ON \
+            -DBUILD_64=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build submodules/monero-cpp/external/monero-project/build/release \
+            --target wallet cryptonote_protocol
+            
+      - name: Build Monero C++
+        run: |
+          cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
+          cmake --build submodules/monero-cpp/build
+
+      - name: Upload monero-cpp library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-cpp-macos-x64.dylib
+          path: submodules/monero-cpp/build/libmonero-cpp.dylib
+            
+      - name: Build monero-c
+        run: |
+          cmake -S MoneroC -B MoneroC/build
+          cmake --build MoneroC/build
+
+      - name: Upload monero-c
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-c-macos-x64.dylib
+          path: MoneroC/build/libmonero-c.dylib
+
+      - name: Build CsharpTestApp
+        run:  dotnet build CsharpTestApp
+
+      - name: Copy native library
+        run:  cp MoneroC/build/libmonero-c.dylib CsharpTestApp/bin/Debug/net10.0/
+
+      - name: Run CsharpTestApp
+        run: |
+          cd CsharpTestApp/bin/Debug/net10.0
+          DYLD_LIBRARY_PATH=. dotnet CsharpTestApp.dll
