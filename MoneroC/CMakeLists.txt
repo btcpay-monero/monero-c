@@ -8,11 +8,22 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(MONERO_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../submodules/monero-cpp)
 set(MONERO_CPP_BUILD_DIR ${MONERO_CPP_DIR}/build)
 
+find_package(Boost REQUIRED COMPONENTS system thread serialization filesystem)
+find_package(OpenSSL REQUIRED)
+
 # import shared monero-cpp library
 add_library(monero-cpp SHARED IMPORTED)
 
+if (APPLE)
+    set(MONERO_CPP_LIB ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.dylib)
+elseif (UNIX)
+    set(MONERO_CPP_LIB ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.so)
+elseif (WIN32)
+    set(MONERO_CPP_LIB ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.dll)
+endif()
+
 set_target_properties(monero-cpp PROPERTIES
-        IMPORTED_LOCATION ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.so
+        IMPORTED_LOCATION ${MONERO_CPP_LIB}
 )
 
 # import our library
@@ -31,4 +42,12 @@ target_include_directories(monero-c PRIVATE
 # link monero-cpp
 target_link_libraries(monero-c PRIVATE
         monero-cpp
+
+        Boost::system
+        Boost::thread
+        Boost::serialization
+        Boost::filesystem
+
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )

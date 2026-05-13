@@ -22,7 +22,7 @@ jobs:
 
       - name: Install build tools
         run:  |
-          brew install cmake boost zeromq hidapi protobuf libevent
+          brew install boost@1.85 zeromq hidapi protobuf
 
       - name: Build Monero project
         run: |
@@ -33,13 +33,12 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
 
           cmake --build submodules/monero-cpp/external/monero-project/build/release \
-            --target wallet cryptonote_protocol \
-            -j$(sysctl -n hw.ncpu)
+            --target wallet cryptonote_protocol
             
       - name: Build Monero C++
         run: |
           cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
-          cmake --build submodules/monero-cpp/build -j$(sysctl -n hw.ncpu)
+          cmake --build submodules/monero-cpp/build
 
       - name: Upload monero-cpp library
         uses: actions/upload-artifact@v7

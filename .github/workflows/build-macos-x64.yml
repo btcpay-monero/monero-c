@@ -22,7 +22,7 @@ jobs:
 
       - name: Install build tools
         run:  |
-          brew install cmake boost zeromq hidapi protobuf libevent
+          brew install boost@1.85 zeromq hidapi protobuf
 
       - name: Build Monero project
         run: |
