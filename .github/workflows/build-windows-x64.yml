@@ -9,6 +9,10 @@ jobs:
   build-windows-x64:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        shell: msys2 {0}
+
     steps:
       - name: Initialize
         uses: actions/checkout@v5
@@ -20,34 +24,64 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install build tools
-        run:  |
-          sudo apt install -y cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
-            libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev
+      - name: Setup MSYS2 MINGW64
+        uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-zeromq
+            mingw-w64-x86_64-libsodium
+            mingw-w64-x86_64-hidapi
+            mingw-w64-x86_64-unbound
+            mingw-w64-x86_64-protobuf
+            mingw-w64-x86_64-libusb
+            mingw-w64-x86_64-libevent
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-ntldd
+            git
+            base-devel
+            wget
+            
+      - name: Install boost v1.85.0
+        run: |
+          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-boost-1.85.0-4-any.pkg.tar.zst
+          pacman -U --noconfirm mingw-w64-x86_64-boost-1.85.0-4-any.pkg.tar.zst
 
       - name: Build Monero project
         run: |
-          cmake -S submodules/monero-cpp/external/monero-project \
-            -B submodules/monero-cpp/external/monero-project/build/release \
-            -DSTATIC=ON \
-            -DBUILD_64=ON \
-            -DCMAKE_BUILD_TYPE=Release
+          cd submodules/monero-cpp/external/monero-project
 
-          cmake --build submodules/monero-cpp/external/monero-project/build/release \
-            --target wallet cryptonote_protocol \
-            -j$(nproc)
-            
+          mkdir -p build/release
+          cd build/release
+
+          cmake -G "MSYS Makefiles" \
+            -D STATIC=ON \
+            -D ARCH="x86-64" \
+            -D BUILD_64=ON \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_TAG="win-x64" \
+            -D CMAKE_TOOLCHAIN_FILE="../../cmake/64-bit-toolchain.cmake" \
+            -D MSYS2_FOLDER=$(cd $MINGW_PREFIX/.. && pwd -W) \
+            ../../
+
+          make wallet cryptonote_protocol -j$(nproc)
+
       - name: Build Monero C++
         run: |
           cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
-          cmake --build submodules/monero-cpp/build -j$(nproc)
+          cmake --build submodules/monero-cpp/build
 
       - name: Upload monero-cpp library
         uses: actions/upload-artifact@v7
         with:
           name: libmonero-cpp-win-x64.dll
           path: submodules/monero-cpp/build/libmonero-cpp.dll
-            
+
       - name: Build monero-c
         run: |
           cmake -S MoneroC -B MoneroC/build
@@ -60,12 +94,16 @@ jobs:
           path: MoneroC/build/libmonero-c.dll
 
       - name: Build CsharpTestApp
-        run:  dotnet build CsharpTestApp
+        shell: pwsh
+        run: dotnet build CsharpTestApp
 
-      - name: Copy native library
-        run:  cp MoneroC/build/libmonero-c.dll CsharpTestApp/bin/Debug/net10.0/
+      - name: Copy native C++ library
+        run: cp submodules/monero-cpp/build/libmonero-cpp.dll CsharpTestApp/bin/Debug/net10.0/
+
+      - name: Copy native C library
+        run: cp MoneroC/build/libmonero-c.dll CsharpTestApp/bin/Debug/net10.0/monero-c.dll
 
       - name: Run CsharpTestApp
         run: |
           cd CsharpTestApp/bin/Debug/net10.0
-          LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll
+          ./CsharpTestApp.exe

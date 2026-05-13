@@ -8,6 +8,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(MONERO_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../submodules/monero-cpp)
 set(MONERO_CPP_BUILD_DIR ${MONERO_CPP_DIR}/build)
 
+set(Boost_NO_BOOST_CMAKE 1)
+set(Boost_USE_MULTITHREADED ON)
 find_package(Boost REQUIRED COMPONENTS system thread serialization filesystem)
 find_package(OpenSSL REQUIRED)
 
@@ -22,9 +24,16 @@ elseif (WIN32)
     set(MONERO_CPP_LIB ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.dll)
 endif()
 
-set_target_properties(monero-cpp PROPERTIES
-        IMPORTED_LOCATION ${MONERO_CPP_LIB}
-)
+if (WIN32)
+    set_target_properties(monero-cpp PROPERTIES
+            IMPORTED_LOCATION ${MONERO_CPP_LIB}
+            IMPORTED_IMPLIB ${MONERO_CPP_BUILD_DIR}/libmonero-cpp.dll.a
+    )
+else()
+    set_target_properties(monero-cpp PROPERTIES
+            IMPORTED_LOCATION ${MONERO_CPP_LIB}
+    )
+endif()
 
 # import our library
 add_library(monero-c SHARED src/monero_abi_bridge.cpp)
@@ -51,3 +60,7 @@ target_link_libraries(monero-c PRIVATE
         OpenSSL::SSL
         OpenSSL::Crypto
 )
+
+if(WIN32)
+    target_link_libraries(monero-c PRIVATE Ws2_32)
+endif()
