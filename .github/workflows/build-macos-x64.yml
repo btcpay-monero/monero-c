@@ -60,7 +60,7 @@ jobs:
       - name: Build CsharpTestApp
         run:  dotnet build CsharpTestApp
 
-      - name: Copy native library
+      - name: Copy native C library
         run:  cp MoneroC/build/libmonero-c.dylib CsharpTestApp/bin/Debug/net10.0/
 
       - name: Run CsharpTestApp

@@ -21,6 +21,6 @@ internal partial class Program
     }
 
     [LibraryImport("monero-c")]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [return: MarshalAs(UnmanagedType.U1)]
     private static partial bool monero_utils_is_valid_language([MarshalAs(UnmanagedType.LPUTF8Str)] string language);
 }
