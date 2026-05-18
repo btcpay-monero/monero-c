@@ -2,4 +2,5 @@
 **/obj
 **/build
 .idea
+/docs/output/
 monero-c.sln.DotSettings.user
