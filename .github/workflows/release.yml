@@ -49,8 +49,10 @@ jobs:
           cp artifacts/libmonero-c-macos-x64.dylib/libmonero-c.dylib        release/libmonero-c-macos-x64.dylib
           cp artifacts/libmonero-cpp-macos-arm64.dylib/libmonero-cpp.dylib  release/libmonero-cpp-macos-arm64.dylib
           cp artifacts/libmonero-c-macos-arm64.dylib/libmonero-c.dylib      release/libmonero-c-macos-arm64.dylib
-          cp artifacts/libmonero-cpp-win-x64.dll/libmonero-cpp.dll      release/libmonero-cpp-win-x64.dll
-          cp artifacts/libmonero-c-win-x64.dll/libmonero-c.dll          release/libmonero-c-win-x64.dll
+          cp artifacts/libmonero-cpp-win-x64.dll/libmonero-cpp.dll          release/libmonero-cpp-win-x64.dll
+          cp artifacts/libmonero-c-win-x64.dll/libmonero-c.dll              release/libmonero-c-win-x64.dll
+          cp artifacts/libmonero-cpp-win-x64.dll.a/libmonero-cpp.dll.a      release/libmonero-cpp-win-x64.dll.a
+          cp artifacts/libmonero-c-win-x64.dll.a/libmonero-c.dll.a          release/libmonero-c-win-x64.dll.a
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
