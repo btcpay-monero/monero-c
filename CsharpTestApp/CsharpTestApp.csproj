@@ -10,4 +10,19 @@
       <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <!-- Specific properties -->
+    <PropertyGroup>
+        <Product>The C ABI bridge test app</Product>
+        <Description>The C ABI wrapper test application for using Monero.</Description>
+        <Version>0.0.1</Version>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <!-- Deterministic build -->
+    <ItemGroup>
+        <PackageReference Include="DotNet.ReproducibleBuilds" Version="2.0.2" PrivateAssets="All"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.202" PrivateAssets="All"/>
+    </ItemGroup>
+
 </Project>

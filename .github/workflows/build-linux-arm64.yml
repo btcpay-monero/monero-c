@@ -61,12 +61,18 @@ jobs:
           path: MoneroC/build/libmonero-c.so
 
       - name: Build CsharpTestApp
-        run:  dotnet build CsharpTestApp
+        run: dotnet build CsharpTestApp -maxcpucount:1 -c Release
+
+      - name: Deterministic build check
+        run: |
+          dotnet tool install --global dotnet-validate --version 0.0.1-preview.537
+          dotnet pack CsharpTestApp/CsharpTestApp.csproj -c Release /p:PackageVersion=1 --no-build -o nuget-packages
+          dotnet validate package local nuget-packages/CsharpTestApp.1.0.0.nupkg
 
       - name: Copy native library
-        run:  cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Debug/net10.0/
+        run:  cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Release/net10.0/
 
       - name: Run CsharpTestApp
         run: |
-          cd CsharpTestApp/bin/Debug/net10.0
+          cd CsharpTestApp/bin/Release/net10.0
           LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll

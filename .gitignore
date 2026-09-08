@@ -3,4 +3,5 @@
 **/build
 .idea
 /docs/output/
+nuget-packages
 monero-c.sln.DotSettings.user
