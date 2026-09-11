@@ -23,7 +23,7 @@ jobs:
 
       - name: Install build tools
         run:  |
-          brew install boost@1.85 zeromq hidapi protobuf
+          brew install boost@1.85 zeromq hidapi protobuf unbound
 
       - name: Build Monero project
         run: |
