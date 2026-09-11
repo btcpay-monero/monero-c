@@ -48,10 +48,10 @@ jobs:
             base-devel
             wget
             
-      - name: Install boost v1.85.0
+      - name: Install boost v1.87.0
         run: |
-          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-boost-1.85.0-4-any.pkg.tar.zst
-          pacman -U --noconfirm mingw-w64-x86_64-boost-1.85.0-4-any.pkg.tar.zst
+          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-boost-1.87.0-1-any.pkg.tar.zst
+          pacman -U --noconfirm mingw-w64-x86_64-boost-1.87.0-1-any.pkg.tar.zst
 
       - name: Build Monero project
         run: |
@@ -74,7 +74,7 @@ jobs:
 
       - name: Build Monero C++
         run: |
-          cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
+          cmake -S submodules/monero-cpp -B submodules/monero-cpp/build -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
           cmake --build submodules/monero-cpp/build
 
       - name: Upload monero-cpp libraries
@@ -87,7 +87,7 @@ jobs:
 
       - name: Build monero-c
         run: |
-          cmake -S MoneroC -B MoneroC/build
+          cmake -S MoneroC -B MoneroC/build -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
           cmake --build MoneroC/build
 
       - name: Upload monero-c libraries
@@ -99,9 +99,11 @@ jobs:
             MoneroC/build/libmonero-c.dll.a
 
       - name: Build CsharpTestApp
+        shell: pwsh
         run: dotnet build CsharpTestApp -maxcpucount:1 -c Release
 
       - name: Deterministic build check
+        shell: pwsh
         run: |
           dotnet tool install --global dotnet-validate --version 0.0.1-preview.537
           dotnet pack CsharpTestApp/CsharpTestApp.csproj -c Release /p:PackageVersion=1 --no-build -o nuget-packages
