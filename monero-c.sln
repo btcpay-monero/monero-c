@@ -6,7 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsharpTestApp", "CsharpTestApp\CsharpTestApp.csproj", "{B8A3FBFD-A877-AB3A-3856-A3E51268C209}"
 EndProject
 
-Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "MoneroC", "MoneroC", "{11111111-2222-3333-4444-555555555555}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MoneroC", "MoneroC", "{11111111-2222-3333-4444-555555555555}"
 EndProject
 
 Global

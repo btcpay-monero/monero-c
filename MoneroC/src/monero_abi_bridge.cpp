@@ -59,15 +59,13 @@
   #include <windows.h>
 #endif
 
-#include <inttypes.h>
 #include <cstring>
 #include <string>
 #include <string_view>
 #include <stdexcept>
-#include <cctype>
-#include <thread>
 #include "monero_abi_bridge.h"
 #include "utils/monero_utils.h"
+#include "utils/gen_utils.h"
 #include "wallet/monero_wallet_keys.h"
 #include "wallet/monero_wallet_full.h"
 
@@ -378,8 +376,8 @@ const char* monero_wallet_get_daemon_connection(void* wallet) noexcept {
     return nullptr;
   }
   monero::monero_wallet* w = reinterpret_cast<monero::monero_wallet*>(wallet);
-  boost::optional<monero_rpc_connection> connection = w->get_daemon_connection();
-  if (connection == boost::none) {
+  std::shared_ptr<monero_rpc_connection> connection = w->get_daemon_connection();
+  if (connection == nullptr) {
     return nullptr;
   }
   std::string result = connection->serialize();
@@ -918,7 +916,7 @@ const char* monero_wallet_get_accounts(void* wallet, bool include_subaddresses) 
   doc.SetObject();
   root.AddMember("accounts", monero_utils::to_rapidjson_val(doc.GetAllocator(), serialized_accounts), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -948,7 +946,7 @@ const char* monero_wallet_get_accounts_by_tag(void* wallet, const char* tag, boo
   doc.SetObject();
   root.AddMember("accounts", monero_utils::to_rapidjson_val(doc.GetAllocator(), serialized_accounts), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1030,7 +1028,7 @@ const char* monero_wallet_get_subaddresses(void* wallet, uint32_t account_idx, c
   doc.SetObject();
   root.AddMember("subaddresses", monero_utils::to_rapidjson_val(doc.GetAllocator(), serialized_subaddresses), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1109,7 +1107,7 @@ const char* monero_wallet_get_txs(void* wallet, const char* query_json) noexcept
   doc.SetObject();
   root.AddMember("txs", monero_utils::to_rapidjson_val(doc.GetAllocator(), txs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1136,7 +1134,7 @@ const char* monero_wallet_get_transfers(void* wallet, const char* query_json) no
   doc.SetObject();
   root.AddMember("transfers", monero_utils::to_rapidjson_val(doc.GetAllocator(), transfers), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1163,7 +1161,7 @@ const char* monero_wallet_get_outputs(void* wallet, const char* query_json) noex
   doc.SetObject();
   root.AddMember("outputs", monero_utils::to_rapidjson_val(doc.GetAllocator(), outputs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1211,13 +1209,8 @@ const char* monero_wallet_export_key_images(void* wallet, bool all) noexcept {
     return "";
   }
   monero::monero_wallet* w = reinterpret_cast<monero::monero_wallet*>(wallet);
-  std::vector<std::shared_ptr<monero_key_image>> key_images = w->export_key_images(all);
-  rapidjson::Document doc;
-  rapidjson::Value root(rapidjson::kObjectType);
-  doc.SetObject();
-  root.AddMember("key_images", monero_utils::to_rapidjson_val(doc.GetAllocator(), key_images), doc.GetAllocator());
-  root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::shared_ptr<monero_key_image_export_result> export_result = w->export_key_images(all);
+  std::string result = export_result->serialize();
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1346,7 +1339,7 @@ const char* monero_wallet_create_txs(void* wallet, const char* config_json) noex
   doc.SetObject();
   root.AddMember("txs", monero_utils::to_rapidjson_val(doc.GetAllocator(), txs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1374,7 +1367,7 @@ const char* monero_wallet_sweep_unlocked(void* wallet, const char* config_json) 
   doc.SetObject();
   root.AddMember("txs", monero_utils::to_rapidjson_val(doc.GetAllocator(), txs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1420,7 +1413,7 @@ const char* monero_wallet_sweep_dust(void* wallet, bool relay) noexcept {
   doc.SetObject();
   root.AddMember("txs", monero_utils::to_rapidjson_val(doc.GetAllocator(), txs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1461,9 +1454,9 @@ const char* monero_wallet_describe_tx_set(void* wallet, const char* tx_set_json)
     return nullptr;
   }
 
-  monero_tx_set tx_set = monero_tx_set::deserialize(tx_set_json);
+  std::shared_ptr<monero_tx_set> tx_set = monero_tx_set::deserialize(tx_set_json);
   monero_wallet* w = reinterpret_cast<monero_wallet*>(wallet);
-  std::string result = w->describe_tx_set(tx_set).serialize();
+  std::string result = w->describe_tx_set(*tx_set).serialize();
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1554,7 +1547,7 @@ const char* monero_wallet_submit_txs(void* wallet, const char* signed_tx_hex) no
   doc.SetObject();
   root.AddMember("txs", monero_utils::to_rapidjson_val(doc.GetAllocator(), txs), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -1830,7 +1823,7 @@ const char* monero_wallet_get_tx_notes(void* wallet, const char* tx_hashes) noex
   doc.SetObject();
   root.AddMember("txNotes", monero_utils::to_rapidjson_val(doc.GetAllocator(), notes), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -2201,7 +2194,7 @@ const char* monero_wallet_submit_multisig_tx_hex(void* wallet, const char* signe
   doc.SetObject();
   root.AddMember("tx_hashes", monero_utils::to_rapidjson_val(doc.GetAllocator(), hex), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -2311,7 +2304,7 @@ const char* monero_wallet_full_get_seed_languages() noexcept {
   doc.SetObject();
   root.AddMember("languages", monero_utils::to_rapidjson_val(doc.GetAllocator(), languages), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
@@ -2369,7 +2362,7 @@ const char* monero_wallet_keys_get_seed_languages() noexcept {
   doc.SetObject();
   root.AddMember("languages", monero_utils::to_rapidjson_val(doc.GetAllocator(), languages), doc.GetAllocator());
   root.Swap(doc);
-  std::string result = monero_utils::serialize(doc);
+  std::string result = gen_utils::serialize(doc);
   const std::string::size_type size = result.size();
   char *buffer = new char[size + 1];
   memcpy(buffer, result.c_str(), size + 1);
