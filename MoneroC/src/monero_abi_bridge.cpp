@@ -68,6 +68,7 @@
 #include "utils/gen_utils.h"
 #include "wallet/monero_wallet_keys.h"
 #include "wallet/monero_wallet_full.h"
+#include "daemon/monero_daemon_rpc.h"
 
 // --------------------------------- NETWORK TYPE ---------------------------------
 
@@ -174,7 +175,7 @@ extern "C"
 
 const char* monero_get_error() noexcept {
   if (last_error.empty()) {
-    return "";
+    return nullptr;
   }
   const std::string::size_type size = last_error.size();
   char *buffer = new char[size + 1];
@@ -2369,6 +2370,81 @@ const char* monero_wallet_keys_get_seed_languages() noexcept {
   return buffer;
   DEBUG_END()
   return nullptr;
+}
+
+// --------------------------------- DAEMON INTERFACE ---------------------------------
+
+void* monero_daemon_connect(const char* uri, const char* username, const char* password, const char* proxy_uri, const char* zmq_uri) noexcept {
+  DEBUG_START()
+  if (uri == nullptr) {
+    last_error = "Uri is null";
+    return nullptr;
+  }
+
+  monero::monero_daemon_rpc* d = new monero::monero_daemon_rpc(
+    std::string(uri),
+    username != nullptr ? std::string(username) : std::string(""),
+    password != nullptr ? std::string(password) : std::string(""),
+    proxy_uri != nullptr ? std::string(proxy_uri) : std::string(""),
+    zmq_uri != nullptr ? std::string(zmq_uri) : std::string("")
+  );
+  return reinterpret_cast<void*>(d);
+  DEBUG_END()
+  return nullptr;
+}
+
+const char* monero_daemon_get_info(void* daemon) noexcept {
+  DEBUG_START()
+  if (daemon == nullptr) {
+    last_error = "Daemon is null";
+    return nullptr;
+  }
+  monero::monero_daemon* d = reinterpret_cast<monero::monero_daemon*>(daemon);
+  std::shared_ptr<monero_daemon_info> info = d->get_info();
+  if (info == nullptr) {
+    return nullptr;
+  }
+  std::string result = info->serialize();
+  const std::string::size_type size = result.size();
+  char *buffer = new char[size + 1];
+  memcpy(buffer, result.c_str(), size + 1);
+  return buffer;
+  DEBUG_END()
+  return nullptr;
+}
+
+const char* monero_daemon_get_fee_estimate(void* daemon, uint64_t grace_blocks) noexcept {
+  DEBUG_START()
+  if (daemon == nullptr) {
+    last_error = "Daemon is null";
+    return nullptr;
+  }
+  monero::monero_daemon* d = reinterpret_cast<monero::monero_daemon*>(daemon);
+  std::shared_ptr<monero_fee_estimate> estimate = d->get_fee_estimate(grace_blocks);
+  if (estimate == nullptr) {
+    return nullptr;
+  }
+  std::string result = estimate->serialize();
+  const std::string::size_type size = result.size();
+  char *buffer = new char[size + 1];
+  memcpy(buffer, result.c_str(), size + 1);
+  return buffer;
+  DEBUG_END()
+  return nullptr;
+}
+
+void monero_daemon_free(void* daemon) noexcept {
+  DEBUG_START()
+  if (daemon == nullptr) {
+    return;
+  }
+  monero::monero_daemon_rpc* d = reinterpret_cast<monero::monero_daemon_rpc*>(daemon);
+  delete d;
+  DEBUG_END()
+}
+
+void monero_free_string(const char* str) noexcept {
+  delete[] str;
 }
 
 #ifdef __cplusplus
