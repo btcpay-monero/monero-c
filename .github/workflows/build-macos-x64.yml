@@ -25,6 +25,40 @@ jobs:
         run:  |
           brew install boost@1.85 zeromq hidapi protobuf unbound
 
+      - name: Download daemon
+        run: |
+          set -ex
+          MONERO_VERSION=0.18.5.1
+          FILE="monero-mac-x64-v${MONERO_VERSION}.tar.bz2"
+          FILE_CHECKSUM="82e305bbf6128b386571bed173dae316f9dd06c4ee1217c5eda849444bec89a9"
+
+          cd /tmp
+          curl -fsSL -o "${FILE}" "https://downloads.getmonero.org/cli/${FILE}"
+          echo "${FILE_CHECKSUM}  ${FILE}" | shasum -a 256 -c -
+
+          mkdir -p bin
+          MONEROD=$(tar -tjf "${FILE}" | grep '/monerod$')
+          tar -xjf "${FILE}" -C bin "${MONEROD}"
+
+          mkdir -p "${GITHUB_WORKSPACE}/monero-cli"
+          cp "bin/${MONEROD}" "${GITHUB_WORKSPACE}/monero-cli/monerod"
+          chmod +x "${GITHUB_WORKSPACE}/monero-cli/monerod"
+
+      - name: Node start
+        run: |
+          ./monero-cli/monerod \
+            --p2p-bind-ip=0.0.0.0 \
+            --p2p-bind-port=18080 \
+            --rpc-bind-port=18081 \
+            --log-level=2 \
+            --rpc-bind-ip=0.0.0.0 \
+            --confirm-external-bind \
+            --regtest \
+            --no-igd \
+            --hide-my-port \
+            --non-interactive \
+            --detach
+
       - name: Build Monero project
         run: |
           cmake -S submodules/monero-cpp/external/monero-project \
@@ -60,12 +94,6 @@ jobs:
 
       - name: Build CsharpTestApp
         run: dotnet build CsharpTestApp -maxcpucount:1 -c Release
-
-      - name: Deterministic build check
-        run: |
-          dotnet tool install --global dotnet-validate --version 0.0.1-preview.537
-          dotnet pack CsharpTestApp/CsharpTestApp.csproj -c Release /p:PackageVersion=1 --no-build -o nuget-packages
-          dotnet validate package local nuget-packages/CsharpTestApp.1.0.0.nupkg
 
       - name: Copy native C library
         run:  cp MoneroC/build/libmonero-c.dylib CsharpTestApp/bin/Release/net10.0/

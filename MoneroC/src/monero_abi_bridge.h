@@ -55,9 +55,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -73,6 +70,7 @@ extern "C"
 // --------------------------------- API ERROR ------------------------------
 
 extern ADDAPI const char* monero_get_error() noexcept;
+extern ADDAPI void monero_free_string(const char* str) noexcept;
 
 // --------------------------------- UTILS ---------------------------------
 
@@ -215,6 +213,12 @@ extern ADDAPI void* monero_wallet_keys_create_wallet_random(const char* config) 
 extern ADDAPI void* monero_wallet_keys_create_wallet_from_seed(const char* config) noexcept;
 extern ADDAPI void* monero_wallet_keys_create_wallet_from_keys(const char* config) noexcept;
 extern ADDAPI const char* monero_wallet_keys_get_seed_languages() noexcept;
+
+// --------------------------------- DAEMON INTERFACE ------------------------------
+extern ADDAPI void* monero_daemon_connect(const char* uri, const char* username, const char* password, const char* proxy_uri, const char* zmq_uri) noexcept;
+extern ADDAPI const char* monero_daemon_get_info(void* daemon) noexcept;
+extern ADDAPI const char* monero_daemon_get_fee_estimate(void* daemon, uint64_t grace_blocks) noexcept;
+extern ADDAPI void monero_daemon_free(void* daemon) noexcept;
 
 #ifdef __cplusplus
 }

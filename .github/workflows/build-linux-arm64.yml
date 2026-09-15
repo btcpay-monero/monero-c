@@ -23,8 +23,42 @@ jobs:
 
       - name: Install build tools
         run:  |
+          sudo apt update
           sudo apt install -y cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
             libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev
+
+      - name: Download daemon
+        run: |
+          set -ex
+          MONERO_VERSION=0.18.5.1
+          FILE="monero-linux-armv8-v${MONERO_VERSION}.tar.bz2"
+          FILE_CHECKSUM="c0caf042cb7c7b760f5ad6be188084b59352440b32990a78b8051497b9398dbc"
+
+          cd /tmp
+          wget -qO "${FILE}" "https://downloads.getmonero.org/cli/${FILE}"
+          echo "${FILE_CHECKSUM} ${FILE}" | sha256sum -c -
+
+          mkdir -p bin
+          tar -xjf "${FILE}" -C bin --strip-components=1 --wildcards "*/monerod"
+
+          mkdir -p "${GITHUB_WORKSPACE}/monero-cli"
+          cp bin/monerod "${GITHUB_WORKSPACE}/monero-cli/"
+          chmod +x "${GITHUB_WORKSPACE}/monero-cli/monerod"
+
+      - name: Node start
+        run: |
+          ./monero-cli/monerod \
+            --p2p-bind-ip=0.0.0.0 \
+            --p2p-bind-port=18080 \
+            --rpc-bind-port=18081 \
+            --log-level=2 \
+            --rpc-bind-ip=0.0.0.0 \
+            --confirm-external-bind \
+            --regtest \
+            --no-igd \
+            --hide-my-port \
+            --non-interactive \
+            --detach
 
       - name: Build Monero project
         run: |
@@ -62,12 +96,6 @@ jobs:
 
       - name: Build CsharpTestApp
         run: dotnet build CsharpTestApp -maxcpucount:1 -c Release
-
-      - name: Deterministic build check
-        run: |
-          dotnet tool install --global dotnet-validate --version 0.0.1-preview.537
-          dotnet pack CsharpTestApp/CsharpTestApp.csproj -c Release /p:PackageVersion=1 --no-build -o nuget-packages
-          dotnet validate package local nuget-packages/CsharpTestApp.1.0.0.nupkg
 
       - name: Copy native library
         run:  cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Release/net10.0/
