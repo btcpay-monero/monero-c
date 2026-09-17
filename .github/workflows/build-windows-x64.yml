@@ -54,8 +54,16 @@ jobs:
         run: |
           set -ex
           cd /tmp
-          wget -q https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.gz
-          tar -xzf boost_1_85_0.tar.gz
+
+          BOOST_VERSION=1.85.0
+          BOOST_FILE="boost_1_85_0.tar.gz"
+          BOOST_SHA256="be0d91732d5b0cc6fbb275c7939974457e79b54d6f07ce2e3dfdd68bef883b0b"
+
+          wget -q "https://archives.boost.io/release/${BOOST_VERSION}/source/${BOOST_FILE}"
+
+          echo "${BOOST_SHA256}  ${BOOST_FILE}" | sha256sum -c -
+
+          tar -xzf "${BOOST_FILE}"
           cd boost_1_85_0
 
           ./bootstrap.sh --with-toolset=gcc \
@@ -158,7 +166,7 @@ jobs:
 
       - name: Copy native C library
         run: cp MoneroC/build/libmonero-c.dll CsharpTestApp/bin/Release/net10.0/monero-c.dll
-          
+
       - name: Run CsharpTestApp
         run: |
           cd CsharpTestApp/bin/Release/net10.0
