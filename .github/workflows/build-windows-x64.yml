@@ -136,26 +136,34 @@ jobs:
           cmake -S submodules/monero-cpp -B submodules/monero-cpp/build -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
           cmake --build submodules/monero-cpp/build
 
-      - name: Upload monero-cpp libraries
+      - name: Upload monero-cpp library
         uses: actions/upload-artifact@v7
         with:
-          name: libmonero-cpp-win-x64
-          path: |
-            submodules/monero-cpp/build/libmonero-cpp.dll
-            submodules/monero-cpp/build/libmonero-cpp.dll.a
+          name: libmonero-cpp-win-x64.dll
+          path: submodules/monero-cpp/build/libmonero-cpp.dll
+
+      - name: Upload monero-cpp import library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-cpp-win-x64.dll.a
+          path: submodules/monero-cpp/build/libmonero-cpp.dll.a
 
       - name: Build monero-c
         run: |
           cmake -S MoneroC -B MoneroC/build -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
           cmake --build MoneroC/build
 
-      - name: Upload monero-c libraries
+      - name: Upload monero-c library
         uses: actions/upload-artifact@v7
         with:
-          name: libmonero-c-win-x64
-          path: |
-            MoneroC/build/libmonero-c.dll
-            MoneroC/build/libmonero-c.dll.a
+          name: libmonero-c-win-x64.dll
+          path: MoneroC/build/libmonero-c.dll
+
+      - name: Upload monero-c import library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-c-win-x64.dll.a
+          path: MoneroC/build/libmonero-c.dll.a
 
       - name: Build CsharpTestApp
         shell: pwsh
