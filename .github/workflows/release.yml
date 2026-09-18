@@ -12,6 +12,9 @@ jobs:
   build-linux-arm64:
     uses: ./.github/workflows/build-linux-arm64.yml
 
+  build-linux-armv7:
+    uses: ./.github/workflows/build-linux-armv7.yml
+
   build-macos-x64:
     uses: ./.github/workflows/build-macos-x64.yml
 
@@ -26,6 +29,7 @@ jobs:
     needs:
       - build-linux-x64
       - build-linux-arm64
+      - build-linux-armv7
       - build-macos-x64
       - build-macos-arm64
       - build-windows-x64
@@ -45,6 +49,8 @@ jobs:
           cp artifacts/libmonero-c-linux-x64.so/libmonero-c.so              release/libmonero-c-linux-x64.so
           cp artifacts/libmonero-cpp-linux-arm64.so/libmonero-cpp.so        release/libmonero-cpp-linux-arm64.so
           cp artifacts/libmonero-c-linux-arm64.so/libmonero-c.so            release/libmonero-c-linux-arm64.so
+          cp artifacts/libmonero-cpp-linux-armv7.so/libmonero-cpp.so        release/libmonero-cpp-linux-armv7.so
+          cp artifacts/libmonero-c-linux-armv7.so/libmonero-c.so            release/libmonero-c-linux-armv7.so
           cp artifacts/libmonero-cpp-macos-x64.dylib/libmonero-cpp.dylib    release/libmonero-cpp-macos-x64.dylib
           cp artifacts/libmonero-c-macos-x64.dylib/libmonero-c.dylib        release/libmonero-c-macos-x64.dylib
           cp artifacts/libmonero-cpp-macos-arm64.dylib/libmonero-cpp.dylib  release/libmonero-cpp-macos-arm64.dylib
