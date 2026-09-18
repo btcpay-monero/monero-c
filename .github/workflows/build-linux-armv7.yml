@@ -6,9 +6,12 @@ on:
   workflow_dispatch:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   build-linux-armv7:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Initialize
@@ -38,18 +41,7 @@ jobs:
             apt-get install -y --no-install-recommends \
               cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
               libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev \
-              wget ca-certificates bzip2
-          "
-
-      - name: Install .NET SDK (arm32)
-        run: |
-          docker exec armv7-build bash -c "
-            set -ex
-            wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
-            chmod +x /tmp/dotnet-install.sh
-            /tmp/dotnet-install.sh --channel 10.0 --architecture arm --install-dir /usr/share/dotnet
-            ln -sfn /usr/share/dotnet/dotnet /usr/local/bin/dotnet
-            dotnet --info
+              libssl-dev wget ca-certificates bzip2
           "
 
       - name: Download daemon
@@ -99,7 +91,9 @@ jobs:
               -DSTATIC=ON \
               -DBUILD_64=OFF \
               -DARCH=armv7-a \
-              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_FLAGS='-mfpu=vfpv3-d16 -mfloat-abi=hard' \
+              -DCMAKE_CXX_FLAGS='-mfpu=vfpv3-d16 -mfloat-abi=hard'
 
             cmake --build submodules/monero-cpp/external/monero-project/build/release \
               --target wallet cryptonote_protocol \
@@ -122,12 +116,25 @@ jobs:
             cmake --build MoneroC/build
           "
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
       - name: Build CsharpTestApp
+        run: |
+          dotnet build CsharpTestApp -maxcpucount:1 -c Release -r linux-arm --self-contained false
+          cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Release/net10.0/linux-arm/
+
+      - name: Install .NET runtime in container
         run: |
           docker exec armv7-build bash -c "
             set -ex
-            dotnet build CsharpTestApp -maxcpucount:1 -c Release -r linux-arm --self-contained false
-            cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Release/net10.0/linux-arm/
+            wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+            chmod +x /tmp/dotnet-install.sh
+            /tmp/dotnet-install.sh --channel 10.0 --architecture arm --runtime dotnet --install-dir /usr/share/dotnet
+            ln -sfn /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+            dotnet --info
           "
 
       - name: Run CsharpTestApp
