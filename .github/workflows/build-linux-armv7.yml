@@ -1,0 +1,154 @@
+name: Build Linux ARMv7 (QEMU)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-linux-armv7:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Initialize
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+        with:
+          platforms: arm
+
+      - name: Start armv7 build container
+        run: |
+          docker run -d --name armv7-build \
+            --platform linux/arm/v7 \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            debian:trixie-slim \
+            sleep infinity
+
+      - name: Install build tools
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              cmake g++ make libunbound-dev libboost-all-dev libzmq3-dev libhidapi-dev \
+              libprotobuf-dev protobuf-compiler libusb-1.0-0-dev libevent-dev \
+              wget ca-certificates bzip2
+          "
+
+      - name: Install .NET SDK (arm32)
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+            chmod +x /tmp/dotnet-install.sh
+            /tmp/dotnet-install.sh --channel 10.0 --architecture arm --install-dir /usr/share/dotnet
+            ln -sfn /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+            dotnet --info
+          "
+
+      - name: Download daemon
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            MONERO_VERSION=0.18.5.1
+            FILE=monero-linux-armv7-v\${MONERO_VERSION}.tar.bz2
+            FILE_CHECKSUM=bd6693ac411919d474d98c9e7d7bae1f03e7ef7f1d779a15e2ba3a188c958d36
+            TAR_PATH=monero-arm-linux-gnueabihf-v\${MONERO_VERSION}/
+
+            cd /tmp
+            wget -qO \"\${FILE}\" \"https://downloads.getmonero.org/cli/\${FILE}\"
+            echo \"\${FILE_CHECKSUM} \${FILE}\" | sha256sum -c -
+
+            mkdir -p bin
+            tar -jxf \"\${FILE}\" -C bin --strip-components=1 \"\${TAR_PATH}monerod\"
+
+            mkdir -p /workspace/monero-cli
+            cp bin/monerod /workspace/monero-cli/
+            chmod +x /workspace/monero-cli/monerod
+          "
+
+      - name: Node start
+        run: |
+          docker exec armv7-build bash -c "
+            /workspace/monero-cli/monerod \
+              --p2p-bind-ip=0.0.0.0 \
+              --p2p-bind-port=18080 \
+              --rpc-bind-port=18081 \
+              --log-level=2 \
+              --rpc-bind-ip=0.0.0.0 \
+              --confirm-external-bind \
+              --regtest \
+              --no-igd \
+              --hide-my-port \
+              --non-interactive \
+              --detach
+          "
+
+      - name: Build Monero project
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            cmake -S submodules/monero-cpp/external/monero-project \
+              -B submodules/monero-cpp/external/monero-project/build/release \
+              -DSTATIC=ON \
+              -DBUILD_64=OFF \
+              -DARCH=armv7-a \
+              -DCMAKE_BUILD_TYPE=Release
+
+            cmake --build submodules/monero-cpp/external/monero-project/build/release \
+              --target wallet cryptonote_protocol \
+              -j\$(nproc)
+          "
+
+      - name: Build Monero C++
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            cmake -S submodules/monero-cpp -B submodules/monero-cpp/build
+            cmake --build submodules/monero-cpp/build -j\$(nproc)
+          "
+
+      - name: Build monero-c
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            cmake -S MoneroC -B MoneroC/build
+            cmake --build MoneroC/build
+          "
+
+      - name: Build CsharpTestApp
+        run: |
+          docker exec armv7-build bash -c "
+            set -ex
+            dotnet build CsharpTestApp -maxcpucount:1 -c Release -r linux-arm --self-contained false
+            cp MoneroC/build/libmonero-c.so CsharpTestApp/bin/Release/net10.0/linux-arm/
+          "
+
+      - name: Run CsharpTestApp
+        run: |
+          docker exec armv7-build bash -c "
+            cd CsharpTestApp/bin/Release/net10.0/linux-arm
+            LD_LIBRARY_PATH=. dotnet CsharpTestApp.dll
+          "
+
+      - name: Upload monero-cpp library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-cpp-linux-armv7.so
+          path: submodules/monero-cpp/build/libmonero-cpp.so
+
+      - name: Upload monero-c
+        uses: actions/upload-artifact@v7
+        with:
+          name: libmonero-c-linux-armv7.so
+          path: MoneroC/build/libmonero-c.so
+
+      - name: Stop build container
+        if: always()
+        run: docker rm -f armv7-build || true
